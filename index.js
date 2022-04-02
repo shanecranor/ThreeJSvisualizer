@@ -1,154 +1,120 @@
-
 import * as THREE from 'three';
 
-import Stats from './jsm/libs/stats.module.js';
+			import Stats from './jsm/libs/stats.module.js';
 
-import { FlyControls } from './jsm/controls/FlyControls.js';
-import { Lensflare, LensflareElement } from './jsm/objects/Lensflare.js';
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { FBXLoader } from './jsm/loaders/FBXLoader.js';
 
-let container, stats;
+			let camera, scene, renderer, stats;
 
-let camera, scene, renderer;
-let controls;
+			const clock = new THREE.Clock();
 
-const clock = new THREE.Clock();
+			let mixer;
 
-init();
-animate();
+			init();
+			animate();
 
-function init() {
+			function init() {
 
-	container = document.createElement( 'div' );
-	document.body.appendChild( container );
+				const container = document.createElement( 'div' );
+				document.body.appendChild( container );
 
-	// camera
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 100, 200, 300 );
 
-	camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 15000 );
-	camera.position.z = 250;
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xa0a0a0 );
+				scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
 
-	// scene
+				const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+				hemiLight.position.set( 0, 200, 0 );
+				scene.add( hemiLight );
 
-	scene = new THREE.Scene();
-	scene.background = new THREE.Color().setHSL( 0.51, 0.4, 0.01 );
-	scene.fog = new THREE.Fog( scene.background, 3500, 15000 );
+				const dirLight = new THREE.DirectionalLight( 0xffffff );
+				dirLight.position.set( 0, 200, 100 );
+				dirLight.castShadow = true;
+				dirLight.shadow.camera.top = 180;
+				dirLight.shadow.camera.bottom = - 100;
+				dirLight.shadow.camera.left = - 120;
+				dirLight.shadow.camera.right = 120;
+				scene.add( dirLight );
 
-	// world
+				// scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
 
-	const s = 250;
+				// ground
+				const mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = true;
+				scene.add( mesh );
 
-	const geometry = new THREE.BoxGeometry( s, s, s );
-	const material = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, shininess: 50 } );
+				const grid = new THREE.GridHelper( 2000, 20, 0x000000, 0x000000 );
+				grid.material.opacity = 0.2;
+				grid.material.transparent = true;
+				scene.add( grid );
 
-	for ( let i = 0; i < 3000; i ++ ) {
+				// model
+				const loader = new FBXLoader();
+				loader.load( 'models/Model/Samba Dancing.fbx', function ( object ) {
+					object.scale.set(1.0, 1.0, 1.0)
+					// mixer = new THREE.AnimationMixer( object );
 
-		const mesh = new THREE.Mesh( geometry, material );
+					// const action = mixer.clipAction( object.animations[ 0 ] );
+					// action.play();
 
-		mesh.position.x = 8000 * ( 2.0 * Math.random() - 1.0 );
-		mesh.position.y = 8000 * ( 2.0 * Math.random() - 1.0 );
-		mesh.position.z = 8000 * ( 2.0 * Math.random() - 1.0 );
+					// object.traverse( function ( child ) {
 
-		mesh.rotation.x = Math.random() * Math.PI;
-		mesh.rotation.y = Math.random() * Math.PI;
-		mesh.rotation.z = Math.random() * Math.PI;
+					// 	if ( child.isMesh ) {
 
-		mesh.matrixAutoUpdate = false;
-		mesh.updateMatrix();
+					// 		child.castShadow = true;
+					// 		child.receiveShadow = true;
 
-		scene.add( mesh );
+					// 	}
 
-	}
+					// } );
 
+					scene.add( object );
 
-	// lights
+				} );
 
-	const dirLight = new THREE.DirectionalLight( 0xffffff, 0.05 );
-	dirLight.position.set( 0, - 1, 0 ).normalize();
-	dirLight.color.setHSL( 0.1, 0.7, 0.5 );
-	scene.add( dirLight );
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				container.appendChild( renderer.domElement );
 
-	// lensflares
-	const textureLoader = new THREE.TextureLoader();
+				const controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 100, 0 );
+				controls.update();
 
-	const textureFlare0 = textureLoader.load( 'textures/lensflare/lensflare0.png' );
-	const textureFlare3 = textureLoader.load( 'textures/lensflare/lensflare3.png' );
+				window.addEventListener( 'resize', onWindowResize );
 
-	addLight( 0.55, 0.9, 0.5, 5000, 0, - 1000 );
-	addLight( 0.08, 0.8, 0.5, 0, 0, - 1000 );
-	addLight( 0.995, 0.5, 0.9, 5000, 5000, - 1000 );
+				// stats
+				stats = new Stats();
+				container.appendChild( stats.dom );
 
-	function addLight( h, s, l, x, y, z ) {
+			}
 
-		const light = new THREE.PointLight( 0xffffff, 1.5, 2000 );
-		light.color.setHSL( h, s, l );
-		light.position.set( x, y, z );
-		scene.add( light );
+			function onWindowResize() {
 
-		const lensflare = new Lensflare();
-		lensflare.addElement( new LensflareElement( textureFlare0, 700, 0, light.color ) );
-		lensflare.addElement( new LensflareElement( textureFlare3, 60, 0.6 ) );
-		lensflare.addElement( new LensflareElement( textureFlare3, 70, 0.7 ) );
-		lensflare.addElement( new LensflareElement( textureFlare3, 120, 0.9 ) );
-		lensflare.addElement( new LensflareElement( textureFlare3, 70, 1 ) );
-		light.add( lensflare );
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
 
-	}
+				renderer.setSize( window.innerWidth, window.innerHeight );
 
-	// renderer
+			}
 
-	renderer = new THREE.WebGLRenderer( { antialias: true } );
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.outputEncoding = THREE.sRGBEncoding;
-	container.appendChild( renderer.domElement );
+			//
 
-	//
+			function animate() {
 
-	controls = new FlyControls( camera, renderer.domElement );
+				requestAnimationFrame( animate );
 
-	controls.movementSpeed = 2500;
-	controls.domElement = container;
-	controls.rollSpeed = Math.PI / 6;
-	controls.autoForward = false;
-	controls.dragToLook = false;
+				const delta = clock.getDelta();
 
-	// stats
+				if ( mixer ) mixer.update( delta );
 
-	stats = new Stats();
-	container.appendChild( stats.dom );
+				renderer.render( scene, camera );
 
-	// events
+				stats.update();
 
-	window.addEventListener( 'resize', onWindowResize );
-
-}
-
-//
-
-function onWindowResize() {
-
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
-}
-
-//
-
-function animate() {
-
-	requestAnimationFrame( animate );
-
-	render();
-	stats.update();
-
-}
-
-function render() {
-
-	const delta = clock.getDelta();
-
-	controls.update( delta );
-	renderer.render( scene, camera );
-
-}
+			}
