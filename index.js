@@ -56,13 +56,6 @@ function init() {
 
 	// scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
 
-	//Code begins for WebAudioAPI.
-	//let context = new (window.AudioContext || window.webkitAudioContext)();
-	//let analyser = context.createAnalyser();
-	//let soundDataArray;
-
-	
-
 	//audio stuff yellow bars
 	// const listener = new THREE.AudioListener();
 	// const audio = new THREE.Audio( listener );
