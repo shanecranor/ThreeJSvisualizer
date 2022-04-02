@@ -5,7 +5,7 @@ import Stats from './jsm/libs/stats.module.js';
 import { OrbitControls } from './jsm/controls/OrbitControls.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
 
-let camera, scene, renderer, stats;
+let camera, scene, tree, renderer, stats;
 
 const clock = new THREE.Clock();
 
@@ -24,7 +24,7 @@ function init() {
 
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xa0a0a0 );
-	scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
+	// scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
 
 	const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444 );
 	hemiLight.position.set( 0, 200, 0 );
@@ -52,12 +52,14 @@ function init() {
 	grid.material.transparent = true;
 	scene.add( grid );
 
+
 	// model
 	const loader = new GLTFLoader();
 	loader.load( 'models/Model/tree.glb',
 		function ( gltf ) {
 			gltf.scene.scale.multiplyScalar(40.0)
-			scene.add( gltf.scene );
+			tree = gltf.scene
+			scene.add( tree );
 			gltf.animations; // Array<THREE.AnimationClip>
 			gltf.scene; // THREE.Group
 			gltf.scenes; // Array<THREE.Group>
@@ -70,9 +72,7 @@ function init() {
 		},
 		// called when loading has errors
 		function ( error ) {
-
 			console.log( 'An error happened' );
-
 		}
 	);
 
@@ -95,26 +95,19 @@ function init() {
 }
 
 function onWindowResize() {
-
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
 	renderer.setSize( window.innerWidth, window.innerHeight );
-
 }
 
 //
 
 function animate() {
-
 	requestAnimationFrame( animate );
-
 	const delta = clock.getDelta();
-
 	if ( mixer ) mixer.update( delta );
-
+	tree.scale.y = (Math.sin(clock.elapsedTime*5)*10)+60
 	renderer.render( scene, camera );
-
 	stats.update();
-
 }
