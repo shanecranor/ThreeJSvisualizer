@@ -56,6 +56,7 @@ function init() {
 	const loader = new GLTFLoader();
 	loader.load( 'models/Model/tree.glb',
 		function ( gltf ) {
+			gltf.scene.scale.multiplyScalar(40.0)
 			scene.add( gltf.scene );
 			gltf.animations; // Array<THREE.AnimationClip>
 			gltf.scene; // THREE.Group
