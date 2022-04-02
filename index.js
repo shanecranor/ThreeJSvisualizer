@@ -14,6 +14,21 @@ let mixer;
 init();
 animate();
 
+function getSampleOfSoundData(index, noSampleSections, soundDataArray){
+	let sampleSize = Math.floor((soundDataArray.length/2) / noSampleSections); 
+	//Note division by 2. I think I accidently initalize the soundDataArray as twice as long as it needs to be?
+	let minBound = index * sampleSize; 
+	let maxBound = (index + 1) * sampleSize;
+	let sum = 0;
+	
+	for (let i = minBound; i < maxBound; i++){
+	  sum += soundDataArray[i];
+	}
+	let average = sum / sampleSize;
+	
+	return average / MAX_SOUND_VALUE;
+  }
+
 function init() {
 
 	const container = document.createElement( 'div' );
@@ -40,6 +55,29 @@ function init() {
 	scene.add( dirLight );
 
 	// scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
+
+	//Code begins for WebAudioAPI.
+	//let context = new (window.AudioContext || window.webkitAudioContext)();
+	//let analyser = context.createAnalyser();
+	//let soundDataArray;
+
+	
+
+	//audio stuff yellow bars
+	// const listener = new THREE.AudioListener();
+	// const audio = new THREE.Audio( listener );
+	// const file = 'dialstoned.mp3';
+	// const mediaElement = new Audio( file );
+	// function playAudio(){
+	// 	mediaElement.play();
+	// }
+
+	// audio.setMediaElementSource( mediaElement );
+	// analyser = new THREE.AudioAnalyser( audio, 128 );
+	// uniforms = {
+	// 	tAudioData: { value: new THREE.DataTexture( analyser.data, fftSize / 2, 1, format ) }
+
+	// };
 
 	// ground
 	const mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
@@ -108,6 +146,9 @@ function animate() {
 	const delta = clock.getDelta();
 	if ( mixer ) mixer.update( delta );
 	tree.scale.y = (Math.sin(clock.elapsedTime*5)*10)+60
+
+	//uniforms.tAudioData.value.needsUpdate = true;
+
 	renderer.render( scene, camera );
 	stats.update();
 }
