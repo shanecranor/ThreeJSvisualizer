@@ -5,11 +5,40 @@ import Stats from './jsm/libs/stats.module.js';
 import { OrbitControls } from './jsm/controls/OrbitControls.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
 
-let camera, scene, tree, renderer, stats;
+let camera, scene, tree, renderer, stats, source;
 
 const clock = new THREE.Clock();
 
 let mixer;
+//audio init stuff
+//Connects the audio source to the analyser and creating a suitably sized array to hold the frequency data.
+function createAudioObjects() {
+	source = context.createMediaElementSource(document.getElementById("sound"));
+	source.connect(analyser);
+	analyser.connect(context.destination);
+	analyser.fftSize = 1024; //128, 256, 512, 1024 and 2048 are valid values.
+	let bufferLength = analyser.frequencyBinCount;
+	soundDataArray = new Uint8Array(bufferLength);
+}
+
+let context = new (window.AudioContext || window.webkitAudioContext)();
+let analyser = context.createAnalyser();
+let soundDataArray;
+let audioInput = document.getElementById('audioInput')
+audioInput.onchange = function() {
+	let sound = document.getElementById("sound");
+	let reader = new FileReader();
+	reader.onload = function(e) {
+	  sound.src = this.result;
+	  sound.controls = true;
+	  sound.play();
+	  
+	};
+	reader.readAsDataURL(this.files[0]);
+	createAudioObjects();
+	document.getElementById('audioInput').style.visibility = 'hidden';
+	document.getElementById('audioInputLabel').style.visibility = 'hidden';
+};
 
 init();
 animate();
@@ -128,7 +157,7 @@ function init() {
 
 	// stats
 	stats = new Stats();
-	container.appendChild( stats.dom );
+	//container.appendChild( stats.dom );
 
 }
 
@@ -145,8 +174,8 @@ function animate() {
 	requestAnimationFrame( animate );
 	const delta = clock.getDelta();
 	if ( mixer ) mixer.update( delta );
-	//tree.scale.y = (Math.sin(clock.elapsedTime*5)*10)+60
-
+	tree.scale.y = (Math.sin(clock.elapsedTime*10)*10)+60
+	tree.rotation.y +=0.01;
 	//uniforms.tAudioData.value.needsUpdate = true;
 
 	renderer.render( scene, camera );
