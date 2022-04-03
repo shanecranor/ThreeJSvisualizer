@@ -5,7 +5,7 @@ import Stats from './jsm/libs/stats.module.js';
 import { OrbitControls } from './jsm/controls/OrbitControls.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
 
-let camera, scene, tree, renderer, stats, source;
+let camera, scene, renderer, models, stats, source;
 
 const clock = new THREE.Clock();
 
@@ -49,17 +49,34 @@ function getSampleOfSoundData(index, noSampleSections, soundDataArray){
 	let minBound = index * sampleSize; 
 	let maxBound = (index + 1) * sampleSize;
 	let sum = 0;
-	
+
 	for (let i = minBound; i < maxBound; i++){
-	  sum += soundDataArray[i];
+		sum += soundDataArray[i];
 	}
 	let average = sum / sampleSize;
-	
+
 	return average / MAX_SOUND_VALUE;
-  }
+}
 
-function init() {
+function setupModel(data) {
+	const model = data.scene;
+	return model;
+}
 
+async function loadModels(){
+	const loader = new GLTFLoader();
+	const [carData, treeData, toolData] = await Promise.all([
+		loader.loadAsync('models/car.glb'),
+		loader.loadAsync('models/tree.glb'),
+		loader.loadAsync('models/toolHoe.glb')
+	]);
+	models = new Object();
+	models.car = setupModel(carData);
+	models.tree = setupModel(treeData);
+	models.tool = setupModel(toolData);
+	return models;
+}
+async function init() {
 	const container = document.createElement( 'div' );
 	document.body.appendChild( container );
 
@@ -83,24 +100,6 @@ function init() {
 	dirLight.shadow.camera.right = 120;
 	scene.add( dirLight );
 
-	// scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
-
-	//audio stuff yellow bars
-	// const listener = new THREE.AudioListener();
-	// const audio = new THREE.Audio( listener );
-	// const file = 'dialstoned.mp3';
-	// const mediaElement = new Audio( file );
-	// function playAudio(){
-	// 	mediaElement.play();
-	// }
-
-	// audio.setMediaElementSource( mediaElement );
-	// analyser = new THREE.AudioAnalyser( audio, 128 );
-	// uniforms = {
-	// 	tAudioData: { value: new THREE.DataTexture( analyser.data, fftSize / 2, 1, format ) }
-
-	// };
-
 	// ground
 	const mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
 	mesh.rotation.x = - Math.PI / 2;
@@ -112,37 +111,6 @@ function init() {
 	grid.material.transparent = true;
 	scene.add( grid );
 
-
-	// model
-	const loader = new GLTFLoader();
-	loader.load( 'models/vehicles_asset_colored_real.glb',
-		function ( gltf ) {
-			gltf.scene.scale.multiplyScalar(40.0)
-			tree = gltf.scene
-			gltf.scene.traverse( function( node ) {
-				if ( node.isMesh ) { 
-					node.castShadow = true; 
-					// node.receiveShadow = true; 
-				}
-			} );
-		
-			scene.add( tree );
-			gltf.animations; // Array<THREE.AnimationClip>
-			gltf.scene; // THREE.Group
-			gltf.scenes; // Array<THREE.Group>
-			gltf.cameras; // Array<THREE.Camera>
-			gltf.asset; // Object
-		},
-		// called while loading is progressing
-		function ( xhr ) {
-			console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-		},
-		// called when loading has errors
-		function ( error ) {
-			console.log( 'An error happened' );
-		}
-	);
-
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
@@ -153,18 +121,28 @@ function init() {
 	controls.target.set( 0, 100, 0 );
 	controls.update();
 
+	//add models
+
+	models = await loadModels();
+	models.car.scale.setScalar( 60 );
+	models.tree.scale.setScalar( 60 );
+	models.tree.position.z = -120;
+	models.tool.scale.setScalar( 60 );
+	models.tool.position.z = 120;
+	for (const model in models){
+		scene.add(models[model])
+	}
+
 	window.addEventListener( 'resize', onWindowResize );
 
 	// stats
-	stats = new Stats();
-	//container.appendChild( stats.dom );
+	//stats = new Stats();
 
 }
 
 function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
-
 	renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
@@ -174,10 +152,20 @@ function animate() {
 	requestAnimationFrame( animate );
 	const delta = clock.getDelta();
 	if ( mixer ) mixer.update( delta );
-	tree.scale.y = (Math.sin(clock.elapsedTime*10)*10)+60
-	tree.rotation.y +=0.01;
-	//uniforms.tAudioData.value.needsUpdate = true;
+	//get new audio info
+	if((soundDataArray === undefined) == false){
+		analyser.getByteFrequencyData(soundDataArray);
+		console.log(soundDataArray)
+	}
+	//do graphics update 
+	if(models){
+		models.car.scale.y = (Math.sin(clock.elapsedTime*10)*10)+60
+		models.car.rotation.y +=0.01;
+		models.tree.scale.y = (Math.sin(clock.elapsedTime*10+Math.PI)*10)+60
 
+	}
+	
+	
 	renderer.render( scene, camera );
-	stats.update();
+	//stats.update();
 }
