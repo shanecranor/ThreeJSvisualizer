@@ -6,7 +6,7 @@ import { OrbitControls } from './jsm/controls/OrbitControls.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
 
 let camera, scene, renderer, models, stats, source;
-let FFT_SIZE = 32
+let FFT_SIZE = 1024
 const clock = new THREE.Clock();
 
 let mixer;
@@ -126,16 +126,15 @@ async function init() {
 	models = await loadModels();
 	models.car.scale.setScalar( 60 );
 	models.tree.scale.setScalar( 40 );
-	models.tree.position.z = -120;
 	let treeSpace = 80
-	models.tree.position.x = -treeSpace*FFT_SIZE/4;
 	models.tool.scale.setScalar( 60 );
 	models.tool.position.z = 120;
 	for (const model in models){
 		if(model == "tree"){
 			for(let i = 0; i < FFT_SIZE/2; i++){
 				models[model+"_"+i] = models[model].clone()
-				models[model+"_"+i].position.x += treeSpace*i;
+				models[model+"_"+i].position.x = treeSpace*(i%22)-(11*treeSpace)
+				models[model+"_"+i].position.z = treeSpace*Math.floor(i/22)-(11*treeSpace)
 				scene.add(models[model+"_"+i])
 			}
 		} else {
