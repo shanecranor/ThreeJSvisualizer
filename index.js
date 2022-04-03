@@ -31,8 +31,8 @@ audioInput.onchange = function() {
 	reader.onload = function(e) {
 	  sound.src = this.result;
 	  sound.controls = true;
-	  sound.play();
-	  
+
+	  //sound.play();
 	};
 	reader.readAsDataURL(this.files[0]);
 	createAudioObjects();
@@ -80,8 +80,8 @@ async function init() {
 	const container = document.createElement( 'div' );
 	document.body.appendChild( container );
 
-	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-	camera.position.set( 100, 200, 300 );
+	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 6000 );
+	camera.position.set( 0, 500, 1700 );
 
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xa0a0a0 );
@@ -131,7 +131,7 @@ async function init() {
 	models.tool.position.z = 120;
 	for (const model in models){
 		if(model == "tree"){
-			for(let i = 0; i < FFT_SIZE/2; i++){
+			for(let i = 0; i < FFT_SIZE/3; i++){
 				models[model+"_"+i] = models[model].clone()
 				models[model+"_"+i].position.x = treeSpace*(i%22)-(11*treeSpace)
 				models[model+"_"+i].position.z = treeSpace*Math.floor(i/22)-(11*treeSpace)
@@ -165,8 +165,9 @@ function animate() {
 	if((soundDataArray === undefined) == false){
 		analyser.getByteFrequencyData(soundDataArray);
 		models.car.scale.y = (soundDataArray[8]/256)*60
-		for(let i = 0; i < FFT_SIZE/2; i++){
-			models["tree_"+i].scale.y = (soundDataArray[i]/256)*60
+		for(let i = 0; i < FFT_SIZE/3; i++){
+			models["tree_"+i].scale.y = (soundDataArray[i]/256)*60*(1+Math.floor(i/(FFT_SIZE/4)))+30+(soundDataArray[Math.floor(FFT_SIZE/3)-i]/256)*10
+			models["tree_"+(Math.floor(FFT_SIZE/3)-i)].rotation.y += (soundDataArray[i]/5000)
 		}
 	}
 	//do graphics update 
