@@ -125,6 +125,7 @@ async function init() {
 
 	models = await loadModels();
 	models.car.scale.setScalar( 60 );
+	models.car.position.z = 600
 	models.tree.scale.setScalar( 40 );
 	let treeSpace = 80
 	models.tool.scale.setScalar( 60 );
