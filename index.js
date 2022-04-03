@@ -55,10 +55,15 @@ function init() {
 
 	// model
 	const loader = new GLTFLoader();
-	loader.load( 'models/Model/tree.glb',
+	loader.load( 'models/vehicles_asset_colored_real.glb',
 		function ( gltf ) {
 			gltf.scene.scale.multiplyScalar(40.0)
 			tree = gltf.scene
+			gltf.scene.traverse( function( node ) {
+				if ( node.isMesh ) { node.castShadow = true; 
+					node.receiveShadow = true; }
+			} );
+		
 			scene.add( tree );
 			gltf.animations; // Array<THREE.AnimationClip>
 			gltf.scene; // THREE.Group
@@ -107,7 +112,7 @@ function animate() {
 	requestAnimationFrame( animate );
 	const delta = clock.getDelta();
 	if ( mixer ) mixer.update( delta );
-	tree.scale.y = (Math.sin(clock.elapsedTime*5)*10)+60
+	//tree.scale.y = (Math.sin(clock.elapsedTime*5)*10)+60
 	renderer.render( scene, camera );
 	stats.update();
 }
