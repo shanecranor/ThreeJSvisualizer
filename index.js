@@ -6,7 +6,7 @@ import { OrbitControls } from './jsm/controls/OrbitControls.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
 
 let camera, scene, renderer, models, stats, source;
-
+let FFT_SIZE = 32
 const clock = new THREE.Clock();
 
 let mixer;
@@ -16,7 +16,7 @@ function createAudioObjects() {
 	source = context.createMediaElementSource(document.getElementById("sound"));
 	source.connect(analyser);
 	analyser.connect(context.destination);
-	analyser.fftSize = 1024; //128, 256, 512, 1024 and 2048 are valid values.
+	analyser.fftSize = FFT_SIZE; //128, 256, 512, 1024 and 2048 are valid values.
 	let bufferLength = analyser.frequencyBinCount;
 	soundDataArray = new Uint8Array(bufferLength);
 }
@@ -125,12 +125,22 @@ async function init() {
 
 	models = await loadModels();
 	models.car.scale.setScalar( 60 );
-	models.tree.scale.setScalar( 60 );
+	models.tree.scale.setScalar( 40 );
 	models.tree.position.z = -120;
+	let treeSpace = 80
+	models.tree.position.x = -treeSpace*FFT_SIZE/4;
 	models.tool.scale.setScalar( 60 );
 	models.tool.position.z = 120;
 	for (const model in models){
-		scene.add(models[model])
+		if(model == "tree"){
+			for(let i = 0; i < FFT_SIZE/2; i++){
+				models[model+"_"+i] = models[model].clone()
+				models[model+"_"+i].position.x += treeSpace*i;
+				scene.add(models[model+"_"+i])
+			}
+		} else {
+			scene.add(models[model])
+		}
 	}
 
 	window.addEventListener( 'resize', onWindowResize );
@@ -155,14 +165,15 @@ function animate() {
 	//get new audio info
 	if((soundDataArray === undefined) == false){
 		analyser.getByteFrequencyData(soundDataArray);
-		console.log(soundDataArray)
+		models.car.scale.y = (soundDataArray[8]/256)*60
+		for(let i = 0; i < FFT_SIZE/2; i++){
+			models["tree_"+i].scale.y = (soundDataArray[i]/256)*60
+		}
 	}
 	//do graphics update 
 	if(models){
-		models.car.scale.y = (Math.sin(clock.elapsedTime*10)*10)+60
 		models.car.rotation.y +=0.01;
 		models.tree.scale.y = (Math.sin(clock.elapsedTime*10+Math.PI)*10)+60
-
 	}
 	
 	
